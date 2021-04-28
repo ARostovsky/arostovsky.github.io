@@ -16,6 +16,7 @@ $(document).ready(function () {
     });
 
     slaveButtonConnect.click(function () {
+        // close old connection
         connectionToMaster = new RTCPeerConnection(pc_config);
         connectionToMaster.onicecandidate = function (event) {
             if (event.candidate) {
