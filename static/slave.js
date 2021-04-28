@@ -3,22 +3,34 @@
 let connectionToMaster;
 
 const pc_config = {"iceServers": [{"urls": "stun:stun.l.google.com:19302"}]};
+let slaveButtonConnect = $(`button#slave-connect`),
+    slaveName = $(`input#slave-name`);
 
-$('button#slave-connect').click(function () {
-    connectionToMaster = new RTCPeerConnection(pc_config);
-    connectionToMaster.onicecandidate = function (event) {
-        if (event.candidate) {
-            trace(`ICE candidate: \n ${event.candidate.candidate}`);
+$(document).ready(function () {
+    slaveName.keyup(function () {
+        if (slaveName.val() !== "") {
+            slaveButtonConnect.prop("disabled", false);
+        } else if (slaveName.val() === "") {
+            slaveButtonConnect.prop("disabled", true);
         }
-    };
+    });
 
-    connectionToMaster.createOffer().then(
-        gotDescription,
-        function (error) {
-            trace('[local] Failed to create session description: ' + error.toString());
-        }
-    );
-})
+    slaveButtonConnect.click(function () {
+        connectionToMaster = new RTCPeerConnection(pc_config);
+        connectionToMaster.onicecandidate = function (event) {
+            if (event.candidate) {
+                trace(`ICE candidate: \n ${event.candidate.candidate}`);
+            }
+        };
+
+        connectionToMaster.createOffer().then(
+            gotDescription,
+            function (error) {
+                trace('[local] Failed to create session description: ' + error.toString());
+            }
+        );
+    })
+});
 
 async function gotDescription(desc) {
     trace(`[local] Offer: ` + desc.sdp);
@@ -34,7 +46,7 @@ async function gotDescription(desc) {
 
     let base64data = encode(desc);
 
-    $.post("/master/connect/", {description: base64data}, function (data) {
+    $.post("/master/connect/", {name: slaveName.val(), description: base64data}, function (data) {
         let remoteDesc = decode(data);
         trace(`[remote] Offer: ` + remoteDesc.sdp);
         connectionToMaster.setRemoteDescription(remoteDesc).then(

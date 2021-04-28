@@ -5,18 +5,20 @@
     <title>Master</title>
 </head>
 <body>
-<h2>List of connected nodes</h2>
-<table id="nodes-table">
+<h3>List of connected nodes</h3>
+<table border="1" id="nodes-table">
     <tr>
         <th>Name</th>
-        <th>Other stuff</th>
+<!--        <th>Other stuff</th>-->
     </tr>
 </table>
 
-<div id="buttons">
+<br><br><br><br>
+<h3>Distribute & execute</h3>
+<div id="wasm">
+    <label for="wasm-file">File (.wasm)</label><br><input type="file" id="wasm-file"><br/>
+    <label for="wasm-data">Data</label><br><textarea id="wasm-data" placeholder="array"></textarea><br/>
     <button id="startButton">Start</button>
-<!--    <button id="sendButton">Send</button>-->
-<!--    <button id="closeButton">Stop</button>-->
 </div>
 
 <!--<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>-->

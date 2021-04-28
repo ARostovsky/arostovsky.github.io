@@ -6,7 +6,10 @@ const fs = require('fs'),
 
 const pc_config = {"iceServers": [{"urls": "stun:stun.l.google.com:19302"}]};
 let connections = [];
-let newConnectionToSlave = null;
+let slave = null;
+let newConnection = null;
+// global.connections = connections;
+// global.newConnection = newConnection;
 
 module.exports = {
     showMaster: function (request, response) {
@@ -18,10 +21,9 @@ module.exports = {
             }
 
             const $ = cheerio.load(html);
-
-            ["first", "second", "third"].forEach(function (param) {
-                $('#nodes-table').append(`<tr><td>${param}</td></tr>`)
-            })
+            connections.forEach((element) => {
+                $('#nodes-table').append(`<tr><td>${element.name}</td></tr>`)
+            });
 
             response.writeHead(200, {'Content-Type': 'text/html'});
             response.write($.html());
@@ -29,16 +31,24 @@ module.exports = {
         });
     },
     connectSlave: function (request, response) {
+        let slaveName = request.body.name;
         let requestDesc = request.body.description;
-        if (!requestDesc) return;
+        if (!slaveName || !requestDesc) {
+            trace("Parameters are missing");
+            response.end();
+            return;
+        }
         let remoteDesc = decode(requestDesc);
 
-
-        if (!newConnectionToSlave) {
-            trace("New connection value isn't empty, please check")
+        if (slave != null || newConnection != null) {
+            trace("Slave value isn't empty, please check")
+            response.end();
+            return;
         }
-        newConnectionToSlave = new DefaultRTCPeerConnection(pc_config);
-        newConnectionToSlave.onicecandidate = function (event) {
+        newConnection = new DefaultRTCPeerConnection(pc_config);
+        slave = {name: slaveName, connection: newConnection}
+
+        newConnection.onicecandidate = function (event) {
             if (event.candidate) {
                 trace(`ICE candidate: \n ${event.candidate.candidate}`);
             }
@@ -48,12 +58,12 @@ module.exports = {
         setRemoteDesc(remoteDesc);
 
         let localDesc;
-        newConnectionToSlave.createAnswer().then(
+        newConnection.createAnswer().then(
             function (desc) {
                 localDesc = desc;
                 trace(`[local] Answer: ` + desc.sdp);
                 setLocalDesc(desc);
-                addNewConnection()
+                addNewSlave();
             },
             function (error) {
                 trace('[local] Failed to create session description: ' + error.toString());
@@ -66,7 +76,7 @@ module.exports = {
 };
 
 function setLocalDesc(desc) {
-    newConnectionToSlave.setLocalDescription(desc).then(
+    newConnection.setLocalDescription(desc).then(
         function () {
             trace('[local] AddIceCandidate success.');
         },
@@ -77,7 +87,7 @@ function setLocalDesc(desc) {
 }
 
 function setRemoteDesc(desc) {
-    newConnectionToSlave.setRemoteDescription(desc).then(
+    newConnection.setRemoteDescription(desc).then(
         function () {
             trace('[remote] AddIceCandidate success.');
         },
@@ -87,10 +97,10 @@ function setRemoteDesc(desc) {
     );
 }
 
-function addNewConnection() {
-    connections += newConnectionToSlave;
-    newConnectionToSlave = null;
-
+function addNewSlave() {
+    connections.push(slave);
+    newConnection = null;
+    slave = null;
 }
 
 function trace(text) {
