@@ -1,0 +1,8 @@
+[package]
+name = "rust-wasm"
+version = "0.1.0"
+authors = ["Aleksey Rostovskiy <aleksey.rostovskiy@jetbrains.com>"]
+edition = "2018"
+
+[dependencies]
+

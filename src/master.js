@@ -16,13 +16,17 @@ module.exports = {
         let filePath = __dirname + "/html/master.html";
         fs.readFile(filePath, {encoding: 'utf-8'}, function (err, html) {
             if (err) {
-                console.log(err);
+                trace(err);
                 return
             }
 
             const $ = cheerio.load(html);
             connections.forEach((element) => {
                 $('#nodes-table').append(`<tr><td>${element.name}</td></tr>`)
+            });
+
+            fs.readdirSync("uploads/").forEach(file => {
+                $('#wasm-file').append(`<option>${file}</option>`)
             });
 
             response.writeHead(200, {'Content-Type': 'text/html'});

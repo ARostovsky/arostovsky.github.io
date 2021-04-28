@@ -14,9 +14,21 @@
 </table>
 
 <br><br><br><br>
-<h3>Distribute & execute</h3>
+<h3>WASM upload section</h3>
+<!--suppress HtmlUnknownTarget -->
+<form method="POST" action="/upload-wasm-file" enctype="multipart/form-data">
+    <label>Select .wasm file:</label>
+    <input type="file" name="wasm_file"/>
+    <br>
+    <input type="submit" name="btn_upload_profile_pic" value="Upload"/>
+</form>
+
+<br><br><br><br>
+<h3>Execute section</h3>
 <div id="wasm">
-    <label for="wasm-file">File (.wasm)</label><br><input type="file" id="wasm-file"><br/>
+    <label for="wasm-file">Select uploaded .wasm file</label>
+    <select id="wasm-file">
+    </select><br/>
     <label for="wasm-data">Data</label><br><textarea id="wasm-data" placeholder="array"></textarea><br/>
     <button id="startButton">Start</button>
 </div>
