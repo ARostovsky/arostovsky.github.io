@@ -9,14 +9,21 @@ const app = new express();
 app.use(bodyParser.urlencoded({extended: false}));
 app.use(bodyParser.json());
 app.use('/static', express.static(__dirname + '/static'));
+app.use('/uploads', express.static(__dirname + '/uploads'));
 app.get('/', function (request, response) {
     master.showMaster(request, response)
 });
 app.get('/slave', function (request, response) {
     response.sendFile(__dirname + "/src/html/slave.html");
 });
-app.post('/master/connect', function (request, response) {
+app.post('/master/connect-slave', function (request, response) {
     master.connectSlave(request, response)
+});
+app.post('/master/offer', function (request, response) {
+    master.createLocalOffer(request, response)
+});
+app.post('/master/connect-master', function (request, response) {
+    master.connectMaster(request, response)
 });
 // https://stackabuse.com/handling-file-uploads-in-node-js-with-expres-and-multer/
 app.post('/upload-wasm-file', (req, res) => {

@@ -8,10 +8,16 @@
 <body>
     <h2>Slave</h2>
     <label for="slave-name">Name</label>
-    <br/>
     <input type="text" id="slave-name">
     <br/>
+    <label>Offer from master
+        <br/>
+        <textarea id="local-offer-value"></textarea>
+    </label>
+    <br/>
     <button id="slave-connect" disabled>Connect</button>
+    <br/><br/><br/>
+    <button id="service-status">Status</button>
 
     <script src="/static/slave.js"></script>
 </body>

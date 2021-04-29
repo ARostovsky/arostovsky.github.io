@@ -5,11 +5,11 @@ const fs = require('fs'),
     DefaultRTCPeerConnection = require('wrtc').RTCPeerConnection;
 
 const pc_config = {"iceServers": [{"urls": "stun:stun.l.google.com:19302"}]};
-let connections = [];
-let slave = null;
-let newConnection = null;
+let connectionFromSlave = null;
+let connectionToSlave = null;
+let serviceChannel;
 // global.connections = connections;
-// global.newConnection = newConnection;
+// global.connectionFromSlave = connectionFromSlave;
 
 const showMaster = function (request, response) {
     let filePath = __dirname + "/html/master.html";
@@ -20,9 +20,9 @@ const showMaster = function (request, response) {
         }
 
         const $ = cheerio.load(html);
-        connections.forEach((element) => {
-            $('#nodes-table').append(`<tr><td>${element.name}</td></tr>`)
-        });
+        // connections.forEach((element) => {
+        //     $('#nodes-table').append(`<tr><td>${element.name}</td></tr>`)
+        // });
 
         fs.readdirSync("uploads/").forEach(file => {
             $('#wasm-file').append(`<option>${file}</option>`)
@@ -44,30 +44,40 @@ const connectSlave = function (request, response) {
     }
     let remoteDesc = decode(requestDesc);
 
-    if (slave != null || newConnection != null) {
-        trace("Slave value isn't empty, please check");
-        response.end();
-        return;
-    }
-    newConnection = new DefaultRTCPeerConnection(pc_config);
-    slave = {name: slaveName, connection: newConnection}
+    connectionFromSlave = new DefaultRTCPeerConnection(pc_config);
 
-    newConnection.onicecandidate = function (event) {
+    connectionFromSlave.onicecandidate = function (event) {
         if (event.candidate) {
             trace(`ICE candidate: \n ${event.candidate.candidate}`);
         }
     }
+    connectionFromSlave.ondatachannel = function (event) {
+        trace(`Data channel: \n ${event.channel.label}`);
+    }
 
-    trace(`[remote] Offer: ` + remoteDesc.sdp);
-    setRemoteDesc(remoteDesc);
+    // trace(`[remote] Offer: ` + remoteDesc.sdp);
+    connectionFromSlave.setRemoteDescription(remoteDesc).then(
+        function () {
+            addDescriptionSuccessCallback("connectionFromSlave", "remote")
+        },
+        function (error) {
+            addDescriptionErrorCallback(error, "connectionFromSlave", "remote")
+        }
+    );
 
     let localDesc;
-    newConnection.createAnswer().then(
+    connectionFromSlave.createAnswer().then(
         function (desc) {
             localDesc = desc;
-            trace(`[local] Answer: ` + desc.sdp);
-            setLocalDesc(desc);
-            addNewSlave();
+            // trace(`[local] Answer: ` + desc.sdp);
+            connectionFromSlave.setLocalDescription(desc).then(
+                function () {
+                    addDescriptionSuccessCallback("connectionFromSlave", "local")
+                },
+                function (error) {
+                    addDescriptionErrorCallback(error, "connectionFromSlave", "local")
+                }
+            );
         },
         function (error) {
             trace('[local] Failed to create session description: ' + error.toString());
@@ -78,40 +88,67 @@ const connectSlave = function (request, response) {
     });
 }
 
+const createLocalOffer = function (request, response) {
+    connectionToSlave = new DefaultRTCPeerConnection(pc_config);
+    serviceChannel = connectionToSlave.createDataChannel('service');
+    setChannelEvents(serviceChannel);
+
+    connectionToSlave.createOffer().then(
+        function (desc) {
+            connectionToSlave.setLocalDescription(desc).then(
+                function () {
+                    addDescriptionSuccessCallback("connectionToSlave", "local")
+                },
+                function (error) {
+                    addDescriptionErrorCallback(error, "connectionToSlave", "local")
+                }
+            ).then(function () {
+                response.write(encode(desc));
+                response.end();
+            });
+        },
+        function (error) {
+            trace('[local] Failed to create session description: ' + error.toString());
+        }
+    )
+}
+
+const connectMaster = function (request, response) {
+    let requestDesc = request.body.description;
+    if (!requestDesc) {
+        trace("Parameters are missing");
+        response.end();
+        return;
+    }
+    let remoteDesc = decode(requestDesc);
+    connectionToSlave.setRemoteDescription(remoteDesc).then(
+        function () {
+            addDescriptionSuccessCallback("connectionToSlave", "remote")
+        },
+        function (error) {
+            addDescriptionErrorCallback(error, "connectionToSlave", "remote")
+        }
+    ).then(function () {
+        response.end();
+    });
+}
+
 const start = function (request, response) {
 
 }
 
 exports.showMaster = showMaster;
 exports.connectSlave = connectSlave;
+exports.createLocalOffer = createLocalOffer;
+exports.connectMaster = connectMaster;
 exports.start = start;
 
-function setLocalDesc(desc) {
-    newConnection.setLocalDescription(desc).then(
-        function () {
-            trace('[local] AddIceCandidate success.');
-        },
-        function (error) {
-            trace('[local] Failed to add Ice Candidate: ' + error.toString());
-        }
-    );
+function addDescriptionSuccessCallback(connection, type) {
+    trace(`[${connection}][${type}] AddIceCandidate success.`);
 }
 
-function setRemoteDesc(desc) {
-    newConnection.setRemoteDescription(desc).then(
-        function () {
-            trace('[remote] AddIceCandidate success.');
-        },
-        function (error) {
-            trace('[remote] Failed to add Ice Candidate: ' + error.toString());
-        }
-    );
-}
-
-function addNewSlave() {
-    connections.push(slave);
-    newConnection = null;
-    slave = null;
+function addDescriptionErrorCallback (error, connection, type) {
+    trace(`[${connection}][${type}] Failed to add Ice Candidate: ` + error.toString());
 }
 
 function trace(text) {
@@ -129,4 +166,25 @@ function decode(obj) {
 function encode(obj) {
     let json = JSON.stringify(obj);
     return Buffer.from(json).toString('base64');
+}
+
+function setChannelEvents(channel) {
+    channel.onmessage = function (event) {
+        const data = JSON.parse(event.data);
+        trace(`${channel.label} ${data}`);
+    };
+    channel.onopen = function () {
+        channel.push = channel.send;
+        channel.send = function (data) {
+            channel.push(JSON.stringify(data));
+        };
+    };
+
+    channel.onerror = function (e) {
+        trace(`${channel.label} ${JSON.stringify(e, null, '\t')}`);
+    };
+
+    channel.onclose = function (e) {
+        trace(`${channel.label} ${JSON.stringify(e, null, '\t')}`);
+    };
 }

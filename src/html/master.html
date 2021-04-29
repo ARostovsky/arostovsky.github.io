@@ -3,15 +3,27 @@
 <head>
     <meta charset="UTF-8">
     <title>Master</title>
+    <script src="/static/jquery-3.6.0.min.js"></script>
+    <script src="/static/master.js"></script>
 </head>
 <body>
-<h3>List of connected nodes</h3>
-<table border="1" id="nodes-table">
-    <tr>
-        <th>Name</th>
-<!--        <th>Other stuff</th>-->
-    </tr>
-</table>
+<h3>Local offer</h3>
+<div id="local-offer">
+    <label>
+        <textarea id="local-offer-value"></textarea>
+    </label>
+    <br>
+    <button id="create-local-offer">Create local offer</button>
+</div>
+
+<!--<br><br><br><br>-->
+<!--<h3>List of connected nodes</h3>-->
+<!--<table border="1" id="nodes-table">-->
+<!--    <tr>-->
+<!--        <th>Name</th>-->
+<!--&lt;!&ndash;        <th>Other stuff</th>&ndash;&gt;-->
+<!--    </tr>-->
+<!--</table>-->
 
 <br><br><br><br>
 <h3>WASM upload section</h3>
@@ -27,9 +39,9 @@
 <h3>Execute section</h3>
 <div id="wasm">
     <label for="wasm-file">Select uploaded .wasm file</label>
-    <select id="wasm-file">
-    </select><br/>
-    <label for="wasm-data">Data</label><br><textarea id="wasm-data" placeholder="array"></textarea><br/>
+    <select id="wasm-file"></select><br/>
+<!--    <input id="wasm-file-input" type="file">-->
+    <label for="wasm-data">Data</label><br><textarea id="wasm-data"></textarea><br/>
     <button id="startButton">Start</button>
 </div>
 
