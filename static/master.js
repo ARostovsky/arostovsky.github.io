@@ -33,52 +33,7 @@ $(document).ready(function () {
 
         offerField.val("");
         offerSection.hide();
-        let name = offer.name;
-
-        let connection = new RTCPeerConnection(pc_config);
-        await connection.setRemoteDescription(offer);
-        let serviceChannel = connection.createDataChannel('service');
-        initializeEventLoggers(connection, masterLog, name);
-
-        let answer;
-        let state;
-        connection.onnegotiationneeded = async function () {
-            answer = await connection.createAnswer();
-            await connection.setLocalDescription(answer);
-        };
-        connection.onicecandidate = async function (event) {
-            if (event.candidate != null) {
-                masterLog(`Found ICE candidate: ${event.candidate.candidate}`, name);
-                return;
-            }
-            masterLog(`Found all ICE candidates`, name);
-            answerField.val(encode(answer));
-            answerSection.show();
-            alert(`Copy answer and paste to slave ${name}`);
-        };
-        connection.onconnectionstatechange = function (event) {
-            state = event.target.connectionState;
-            masterLog(`Connection state change: ${state}`, name);
-            if (state === "connected") {
-                answerField.val("");
-                answerSection.hide();
-                slavesList.append(`<li>${name}</li>`);
-                connections.push({
-                    "name": name,
-                    "connection": connection,
-                    "serviceChannel": serviceChannel
-                });
-                slavesListSection.show();
-                addSlave.show();
-            } else if (state === "failed") {
-                answerField.val("");
-                answerSection.hide();
-                slavesListSection.show();
-                addSlave.show();
-            }
-        };
-        answer = await connection.createAnswer();
-        await connection.setLocalDescription(answer);
+        await initializeConnection(offer);
     });
 
     closeAdding.click(function () {
@@ -97,6 +52,82 @@ $(document).ready(function () {
                 alert(results.instance.exports.fun());
             });
     });
+
+    async function initializeConnection(offer) {
+        let connection = new RTCPeerConnection(pc_config);
+        await connection.setRemoteDescription(offer);
+        let serviceChannel;
+
+        let name = offer.name;
+        let answer;
+        let state;
+
+        connection.ondatachannel = function (event) {
+            serviceChannel = event.channel;
+            masterLog(`Data channel "${event.channel.label}" is initialized`, name);
+            initializeDataChannel(serviceChannel, name);
+            connections.push({
+                "name": name,
+                "connection": connection,
+                "serviceChannel": serviceChannel
+            });
+        }
+        connection.onnegotiationneeded = async function () {
+            answer = await connection.createAnswer();
+            await connection.setLocalDescription(answer);
+        };
+        connection.onicecandidate = async function (event) {
+            if (event.candidate != null) {
+                masterLog(`Found ICE candidate: ${event.candidate.candidate}`, name);
+                return;
+            }
+            masterLog(`Found all ICE candidates`, name);
+            masterLog(`State ${state}`, name);
+            if (state !== "failed") {
+                answerField.val(encode(answer));
+                answerSection.show();
+                alert(`Copy answer and paste to slave ${name}`);
+            } else {
+                alert("Connection is failed");
+            }
+        };
+        connection.onicecandidateerror = function (event) {
+            masterLog(`Adding ICE candidate failed with ${event.errorCode}: ${event.errorText}`, name);
+        }
+        connection.onconnectionstatechange = function (event) {
+            state = event.target.connectionState;
+            masterLog(`Connection state change: ${state}`, name);
+            if (state === "connected") {
+                answerField.val("");
+                answerSection.hide();
+                slavesList.append(`<li>${name}</li>`);
+                slavesListSection.show();
+                addSlave.show();
+            } else if (state === "failed") {
+                answerField.val("");
+                answerSection.hide();
+                slavesListSection.show();
+                addSlave.show();
+            }
+        };
+
+        answer = await connection.createAnswer();
+        await connection.setLocalDescription(answer);
+        return connection;
+    }
+
+    function initializeDataChannel(channel, name) {
+        channel.onmessage = event => {
+            masterLog(`[${channel.label}] message: ${event.data}`, name);
+        }
+        function handleReceiveChannelStatusChange() {
+            if (channel) {
+                masterLog(`[${channel.label}] status: ${channel.readyState}`, name);
+            }
+        }
+        channel.onopen = () => handleReceiveChannelStatusChange();
+        channel.onclose = () => handleReceiveChannelStatusChange();
+    }
 });
 
 function masterLog(text, name) {

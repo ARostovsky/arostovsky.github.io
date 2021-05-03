@@ -1,7 +1,9 @@
 'use strict';
 
-let connection
+let connection;
 let serviceChannel;
+let file;
+let inputData;
 
 $(document).ready(function () {
     let definitionSection = $("div#definition-section"),
@@ -27,10 +29,26 @@ $(document).ready(function () {
         connectionSection.hide();
         slaveLog("Initializing peer connection, please wait...");
         connection = new RTCPeerConnection(pc_config);
-        serviceChannel = connection.createDataChannel('service');
-        initializeEventLoggers(connection, slaveLog);
+        connectionInitialization();
 
+        serviceChannel = connection.createDataChannel('service');
+        dataChannelInitialization();
+
+        window.channel = serviceChannel;
+    });
+
+    addAnswer.click(async function () {
+        createOffer.prop('disabled', true);
+        let answer = decode(answerField.val());
+        if (answer === "" || answer == null) return;
+        await connection.setRemoteDescription(answer);
+    });
+
+    function connectionInitialization() {
         let offer;
+        connection.ondatachannel = event => {
+            slaveLog(`Data channel "${event.channel.label}" is initialized`);
+        };
         connection.onnegotiationneeded = async () => {
             offer = await connection.createOffer();
             await connection.setLocalDescription(offer);
@@ -54,6 +72,9 @@ $(document).ready(function () {
             answerSection.show();
             alert("Copy offer and paste to master");
         }
+        connection.onicecandidateerror = function (event) {
+            slaveLog(`Adding ICE candidate failed with ${event.errorCode}: ${event.errorText}`);
+        }
         connection.onconnectionstatechange = function (event) {
             let state = event.target.connectionState;
             slaveLog(`Connection state change: ${state}`);
@@ -70,14 +91,21 @@ $(document).ready(function () {
                 alert("Seems like connection is lost, restart page");
             }
         };
-    });
+    }
 
-    addAnswer.click(async function () {
-        createOffer.prop('disabled', true);
-        let answer = decode(answerField.val());
-        if (answer === "" || answer == null) return;
-        await connection.setRemoteDescription(answer);
-    });
+    function dataChannelInitialization() {
+        serviceChannel.onmessage = event => {
+            slaveLog(`[${channel.label}] message: ${event.data}`);
+        }
+
+        let handleSendChannelStatusChange = () => {
+            if (serviceChannel) {
+                slaveLog(`[${channel.label}] status: ${channel.readyState}`);
+            }
+        }
+        serviceChannel.onopen = handleSendChannelStatusChange;
+        serviceChannel.onclose = handleSendChannelStatusChange;
+    }
 });
 
 function slaveLog(text) {
