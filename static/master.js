@@ -9,7 +9,9 @@ $(document).ready(function () {
         offerField = $("textarea#offer"),
         answerSection = $("div#answer-section"),
         answerField = $("textarea#answer"),
-        createAnswer = $("button#create-answer");
+        createAnswer = $("button#create-answer"),
+        closeAdding = $("button#close-adding"),
+        startButton = $("button#start-button");
 
     addSlave.click(function () {
         slavesListSection.hide();
@@ -39,6 +41,7 @@ $(document).ready(function () {
         initializeEventLoggers(connection, masterLog, name);
 
         let answer;
+        let state;
         connection.onnegotiationneeded = async function () {
             answer = await connection.createAnswer();
             await connection.setLocalDescription(answer);
@@ -51,10 +54,10 @@ $(document).ready(function () {
             masterLog(`Found all ICE candidates`, name);
             answerField.val(encode(answer));
             answerSection.show();
-            alert("Copy answer and paste to slave %SLAVENAME%'");
+            alert(`Copy answer and paste to slave ${name}`);
         };
         connection.onconnectionstatechange = function (event) {
-            let state = event.target.connectionState;
+            state = event.target.connectionState;
             masterLog(`Connection state change: ${state}`, name);
             if (state === "connected") {
                 answerField.val("");
@@ -67,13 +70,24 @@ $(document).ready(function () {
                 });
                 slavesListSection.show();
                 addSlave.show();
+            } else if (state === "failed") {
+                answerField.val("");
+                answerSection.hide();
+                slavesListSection.show();
+                addSlave.show();
             }
         };
         answer = await connection.createAnswer();
         await connection.setLocalDescription(answer);
     });
 
-    $("button#startButton").click(function () {
+    closeAdding.click(function () {
+        slavesListSection.show();
+        offerSection.hide();
+        addSlave.show();
+    });
+
+    startButton.click(function () {
         let file = $("#wasm-file").val();
 
         fetch(`/uploads/${file}`)
