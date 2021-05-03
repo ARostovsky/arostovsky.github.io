@@ -1,5 +1,4 @@
-const multer = require("multer"),
-    path = require("path");
+const multer = require("multer");
 
 const wasmFilter = function(req, file, cb) {
     if (!file.originalname.match(/\.wasm$/)) {

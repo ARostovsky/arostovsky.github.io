@@ -3,22 +3,44 @@
 <head>
     <meta charset="UTF-8">
     <title>Slave</title>
-    <script src="/static/jquery-3.6.0.min.js"></script>
+    <script type="text/javascript" src="../../static/jquery-3.6.0.min.js"></script>
+    <script type="text/javascript" src="../../static/utils.js"></script>
+    <script type="text/javascript" src="../../static/webrtc.js"></script>
+    <script type="text/javascript" src="../../static/slave.js"></script>
 </head>
 <body>
-    <h2>Slave</h2>
+<h2>Slave</h2>
+<div id="definition-section" style="display: none;">
+    <label id="name"></label>
+    <label style="color: #32CD32;">Connected</label>
+</div>
+<div id="connecting-section">
     <label for="slave-name">Name</label>
     <input type="text" id="slave-name">
-    <br/>
-    <label>Offer from master
-        <br/>
-        <textarea id="local-offer-value"></textarea>
-    </label>
-    <br/>
-    <button id="slave-connect" disabled>Connect</button>
-    <br/><br/><br/>
-    <button id="service-status">Status</button>
+    <button id="create-offer" disabled>Connect</button>
+</div>
 
-    <script src="/static/slave.js"></script>
+<div id="offer-section" style="display: none;">
+    <label>Offer</label>
+    <br>
+    <label>
+        <textarea id="offer" rows="8" cols="160" name="text" readonly="readonly" disabled></textarea>
+    </label>
+</div>
+
+<div id="answer-section" style="display: none;">
+    <label for="slave-name">Answer</label>
+    <br>
+    <label>
+        <textarea id="answer" rows="8" cols="160" name="text"></textarea>
+    </label>
+    <br>
+    <button id="add-answer">Add answer</button>
+</div>
+
+<br/>
+<label>
+    <textarea id="log" rows="30" cols="160" name="text" readonly="readonly"></textarea>
+</label>
 </body>
 </html>

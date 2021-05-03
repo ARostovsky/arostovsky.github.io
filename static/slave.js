@@ -1,129 +1,86 @@
 'use strict';
 
-const pc_config = {"iceServers": [{"urls": "stun:stun.l.google.com:19302"}]};
-let slaveButtonConnect = $(`button#slave-connect`),
-    slaveName = $(`input#slave-name`),
-    masterOffer = $("textarea#local-offer-value");
-
-let connectionToMaster = new RTCPeerConnection(pc_config);
-let connectionFromMaster = new RTCPeerConnection(pc_config);
+let connection
 let serviceChannel;
 
 $(document).ready(function () {
+    let definitionSection = $("div#definition-section"),
+        slaveNameLabel = $("label#name"),
+        connectionSection = $("div#connecting-section"),
+        slaveName = $(`input#slave-name`),
+        createOffer = $(`button#create-offer`),
+        offerSection = $("div#offer-section"),
+        offerField = $("textarea#offer"),
+        answerSection = $("div#answer-section"),
+        addAnswer = $("button#add-answer"),
+        answerField = $("textarea#answer");
+
     slaveName.keyup(function () {
-        if (slaveName.val() !== "" && masterOffer.val() !== "") {
-            slaveButtonConnect.prop("disabled", false);
+        if (slaveName.val() !== "") {
+            createOffer.prop("disabled", false);
         } else if (slaveName.val() === "") {
-            slaveButtonConnect.prop("disabled", true);
+            createOffer.prop("disabled", true);
         }
     });
 
-    connectionToMaster.onicecandidate = function (event) {
-        if (event.candidate) {
-            trace(`ICE candidate: \n ${event.candidate.candidate}`);
-        }
-    };
+    createOffer.click(async function () {
+        connectionSection.hide();
+        slaveLog("Initializing peer connection, please wait...");
+        connection = new RTCPeerConnection(pc_config);
+        serviceChannel = connection.createDataChannel('service');
+        initializeEventLoggers(connection, slaveLog);
 
-    connectionToMaster.ondatachannel = function (event) {
-        trace(`Data channel: \n ${event.channel.label}`);
-    };
-
-    connectionToMaster.onconnectionstatechange = function (event) {
-        trace(event);
-    }
-
-    slaveButtonConnect.click(function () {
-        // close old connection
-        serviceChannel = connectionToMaster.createDataChannel('service');
-
-        connectionToMaster.createOffer().then(
-            gotDescription,
-            function (error) {
-                trace('[local] Failed to create session description: ' + error.toString());
+        let offer;
+        connection.onnegotiationneeded = async () => {
+            offer = await connection.createOffer();
+            await connection.setLocalDescription(offer);
+        };
+        connection.onicecandidate = async function (event) {
+            if (event.candidate != null) {
+                slaveLog(`Found ICE candidate: ${event.candidate.candidate}`);
+                return;
             }
-        );
+            slaveLog('Found all ICE candidates');
+            offer = await connection.createOffer();
 
-        let remoteMasterDescription = decode(masterOffer.val());
-        connectionFromMaster.setRemoteDescription(remoteMasterDescription).then(function () {
-            connectionFromMaster.createAnswer().then(function (desc) {
-                connectionFromMaster.setLocalDescription(desc).then(function () {
-                    let base64data = encode(desc);
-                    $.post("/master/connect-master/", {description: base64data});
-                });
-            });
-        });
-    })
+            let name = slaveName.val();
+            slaveNameLabel.text(name);
 
-    $("#service-status").click(function () {
-        console.log(connectionToMaster)
-        console.log(serviceChannel);
-        alert(`${connectionToMaster.readyState}\n${connectionToMaster.sctp.state}`);
-    })
+            let offerJSON = offer.toJSON();
+            offerJSON.name = name;
+            offerField.val(encode(offerJSON));
+            offerSection.show();
 
-    connectionToMaster.ondatachannel = function (event) {
-        let channel = event.channel;
-        trace(`${channel.label} connect`);
-        switch (channel.label) {
-            case 'service' : {
-                serviceChannel = channel;
-                serviceChannel.onmessage = traceOnEvent;
-                serviceChannel.onopen = traceOnEvent;
-                serviceChannel.onclose = traceOnEvent;
-                break;
-            }
-            default:
-                trace(channel.label)
-                break;
+            answerSection.show();
+            alert("Copy offer and paste to master");
         }
+        connection.onconnectionstatechange = function (event) {
+            let state = event.target.connectionState;
+            slaveLog(`Connection state change: ${state}`);
+            if (state === "connected") {
+                slaveName.val("");
+                connectionSection.hide();
+                offerField.val("");
+                offerSection.hide();
+                answerField.val("");
+                answerSection.hide();
+                definitionSection.show();
+            } else if (definitionSection.is(":visible")) {
+                definitionSection.hide();
+                alert("Seems like connection is lost, restart page");
+            }
+        };
+    });
 
-    }
+    addAnswer.click(async function () {
+        createOffer.prop('disabled', true);
+        let answer = decode(answerField.val());
+        if (answer === "" || answer == null) return;
+        await connection.setRemoteDescription(answer);
+    });
 });
 
-async function gotDescription(desc) {
-    // trace(`[local] Offer: ` + desc.sdp);
-    connectionToMaster.setLocalDescription(desc).then(
-        function () {
-            trace('[local] AddIceCandidate success.')
-        },
-        function (error) {
-            trace('[local] Failed to add Ice Candidate: ' + error.toString());
-        }
-    );
-
-
-    let base64data = encode(desc);
-
-    $.post("/master/connect-slave/", {name: slaveName.val(), description: base64data}, function (data) {
-        let remoteDesc = decode(data);
-        // trace(`[remote] Offer: ` + remoteDesc.sdp);
-        connectionToMaster.setRemoteDescription(remoteDesc).then(
-            function () {
-                trace('[remote] AddIceCandidate success.');
-
-            },
-            function (error) {
-                trace('[remote] Failed to add Ice Candidate: ' + error.toString());
-            }
-        );
-    });
+function slaveLog(text) {
+    let logField = $('textarea#log');
+    log(logField, text)
 }
-
-function traceOnEvent(event) {
-    trace(event.data);
-}
-
-// noinspection DuplicatedCode
-function trace(text) {
-    if (text[text.length - 1] === '\n') {
-        text = text.substring(0, text.length - 1);
-    }
-    if (window.performance) {
-        const now = (window.performance.now() / 1000).toFixed(3);
-        console.log(now + ': ' + text);
-    } else {
-        console.log(text);
-    }
-}
-
-const decode = obj => JSON.parse(atob(obj));
-const encode = obj => btoa(JSON.stringify(obj));

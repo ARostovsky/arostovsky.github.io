@@ -5,3 +5,8 @@
 pub fn fun() -> i32 {
     return 1234;
 }
+
+// #[no_mangle]
+// pub fn sum(array: Vec<i32>) -> i32 {
+//     return array.into_iter().sum()
+// }

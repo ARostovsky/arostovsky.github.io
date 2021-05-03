@@ -3,27 +3,48 @@
 <head>
     <meta charset="UTF-8">
     <title>Master</title>
-    <script src="/static/jquery-3.6.0.min.js"></script>
-    <script src="/static/master.js"></script>
+    <script type="text/javascript" src="../../static/jquery-3.6.0.min.js"></script>
+    <script type="text/javascript" src="../../static/utils.js"></script>
+    <script type="text/javascript" src="../../static/webrtc.js"></script>
+    <script type="text/javascript" src="../../static/master.js"></script>
 </head>
 <body>
-<h3>Local offer</h3>
-<div id="local-offer">
-    <label>
-        <textarea id="local-offer-value"></textarea>
-    </label>
-    <br>
-    <button id="create-local-offer">Create local offer</button>
-</div>
+<h2>Master</h2>
+<div id="list-slaves-section">
+    <h3>Connected slaves:</h3>
+    <ul id="slaves-list">
 
-<!--<br><br><br><br>-->
-<!--<h3>List of connected nodes</h3>-->
-<!--<table border="1" id="nodes-table">-->
-<!--    <tr>-->
-<!--        <th>Name</th>-->
-<!--&lt;!&ndash;        <th>Other stuff</th>&ndash;&gt;-->
-<!--    </tr>-->
-<!--</table>-->
+    </ul>
+    <button id="add-slave">Add new slave</button>
+</div>
+<div id="offer-section" style="display: none;">
+    <label>
+        <textarea id="offer" rows="8" cols="160" name="text" placeholder="Paste offer here"></textarea>
+    </label>
+    <br/>
+    <button id="create-answer" disabled>Create answer</button>
+</div>
+<div id="answer-section" style="display: none;">
+    <label>Answer</label>
+    <br/>
+    <label>
+        <textarea id="answer" rows="8" cols="160" name="text" readonly="readonly"></textarea>
+    </label>
+</div>
+<br/>
+<label>
+    <textarea id="log" rows="30" cols="160" name="text" readonly="readonly"></textarea>
+</label>
+<br/><br/><br/>
+
+<h3>Execute section</h3>
+<div id="wasm">
+    <label for="wasm-file">Select uploaded .wasm file</label>
+    <select id="wasm-file"></select><br/>
+    <!--    <input id="wasm-file-input" type="file">-->
+    <label for="wasm-data">Data</label><br><textarea id="wasm-data"></textarea><br/>
+    <button id="startButton">Start</button>
+</div>
 
 <br><br><br><br>
 <h3>WASM upload section</h3>
@@ -34,17 +55,5 @@
     <br>
     <input type="submit" name="btn_upload_profile_pic" value="Upload"/>
 </form>
-
-<br><br><br><br>
-<h3>Execute section</h3>
-<div id="wasm">
-    <label for="wasm-file">Select uploaded .wasm file</label>
-    <select id="wasm-file"></select><br/>
-<!--    <input id="wasm-file-input" type="file">-->
-    <label for="wasm-data">Data</label><br><textarea id="wasm-data"></textarea><br/>
-    <button id="startButton">Start</button>
-</div>
-
-<!--<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>-->
 </body>
 </html>

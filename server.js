@@ -16,15 +16,7 @@ app.get('/', function (request, response) {
 app.get('/slave', function (request, response) {
     response.sendFile(__dirname + "/src/html/slave.html");
 });
-app.post('/master/connect-slave', function (request, response) {
-    master.connectSlave(request, response)
-});
-app.post('/master/offer', function (request, response) {
-    master.createLocalOffer(request, response)
-});
-app.post('/master/connect-master', function (request, response) {
-    master.connectMaster(request, response)
-});
+
 // https://stackabuse.com/handling-file-uploads-in-node-js-with-expres-and-multer/
 app.post('/upload-wasm-file', (req, res) => {
     // 'wasm_file' is the name of our file input field in the HTML form
@@ -46,9 +38,6 @@ app.post('/upload-wasm-file', (req, res) => {
 
         res.send(`You have uploaded .wasm file: ${req.file.path}<hr />`);
     });
-});
-app.post('/startuem', function (request, response) {
-    master.start(request, response)
 });
 
 
