@@ -25,3 +25,11 @@ function log(field, text, name = "") {
     entry += `${text}\n`
     field.append(entry)
 }
+
+function copyToClipboard(data) {
+    let $temp = $("<input>");
+    $("body").append($temp);
+    $temp.val(data).select();
+    document.execCommand("copy");
+    $temp.remove();
+}

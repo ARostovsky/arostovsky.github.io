@@ -1,4 +1,3 @@
-// const memory = new WebAssembly.Memory({initial: 10, maximum: 100});
 let connections = [];
 
 $(document).ready(function () {
@@ -9,6 +8,7 @@ $(document).ready(function () {
         offerField = $("textarea#offer"),
         answerSection = $("div#answer-section"),
         answerField = $("textarea#answer"),
+        copyAnswer = $("button#copy-answer"),
         createAnswer = $("button#create-answer"),
         closeAdding = $("button#close-adding"),
         startButton = $("button#start-button");
@@ -27,11 +27,18 @@ $(document).ready(function () {
         }
     });
 
+    copyAnswer.click(function () {
+        copyToClipboard(answerField.val());
+        masterLog("Answer is copied to clipboard!");
+        copyAnswer.prop("disabled", true);
+    });
+
     createAnswer.click(async function () {
         let offer = decode(offerField.val());
         if (offer === "" || offer == null) return;
 
         offerField.val("");
+        copyAnswer.prop("disabled", false);
         offerSection.hide();
         await initializeConnection(offer);
     });
@@ -42,15 +49,35 @@ $(document).ready(function () {
         addSlave.show();
     });
 
-    startButton.click(function () {
-        let file = $("#wasm-file").val();
+    startButton.click(async function () {
+        let fileName = $("#wasm-file").val();
+        let input = $("#wasm-data").val().split(" ").map(numStr => {
+            let value = parseInt(numStr);
+            if (isNaN(value)) {
+                masterLog(`Check input data, ${numStr} is not a number`);
+            } else {
+                return value;
+            }
+        });
 
-        fetch(`/uploads/${file}`)
-            .then(response => response.arrayBuffer())
-            .then(bytes => WebAssembly.instantiate(bytes, {}))
-            .then(results => {
-                alert(results.instance.exports.fun());
+        let reader = new FileReader();
+        reader.onload = function () {
+            let message = {
+                type: "execute",
+                file: btoa(this.result),
+                input: input
+            };
+            connections.forEach(function (connection) {
+                connection.serviceChannel.send(encode(message));
             });
+        };
+
+        await fetch(`/uploads/${fileName}`)
+            .then(response => response.blob())
+            .then(blob => reader.readAsBinaryString(blob));
+        // .then(results => {
+        //     alert(results.instance.exports.fun());
+        // });
     });
 
     async function initializeConnection(offer) {
@@ -120,11 +147,13 @@ $(document).ready(function () {
         channel.onmessage = event => {
             masterLog(`[${channel.label}] message: ${event.data}`, name);
         }
+
         function handleReceiveChannelStatusChange() {
             if (channel) {
                 masterLog(`[${channel.label}] status: ${channel.readyState}`, name);
             }
         }
+
         channel.onopen = () => handleReceiveChannelStatusChange();
         channel.onclose = () => handleReceiveChannelStatusChange();
     }

@@ -4,10 +4,12 @@ let connection;
 let serviceChannel;
 let file;
 let inputData;
+let result;
 
 $(document).ready(function () {
     let definitionSection = $("div#definition-section"),
         slaveNameLabel = $("label#name"),
+        copyOffer = $("button#copy-offer"),
         connectionSection = $("div#connecting-section"),
         slaveName = $(`input#slave-name`),
         createOffer = $(`button#create-offer`),
@@ -17,12 +19,19 @@ $(document).ready(function () {
         addAnswer = $("button#add-answer"),
         answerField = $("textarea#answer");
 
+    // noinspection DuplicatedCode
     slaveName.keyup(function () {
         if (slaveName.val() !== "") {
             createOffer.prop("disabled", false);
         } else if (slaveName.val() === "") {
             createOffer.prop("disabled", true);
         }
+    });
+
+    copyOffer.click(function () {
+        copyToClipboard(offerField.val());
+        slaveLog("Offer is copied to clipboard!");
+        copyOffer.prop("disabled", true);
     });
 
     createOffer.click(async function () {
@@ -67,13 +76,14 @@ $(document).ready(function () {
             let offerJSON = offer.toJSON();
             offerJSON.name = name;
             offerField.val(encode(offerJSON));
+            copyOffer.prop("disabled", false);
             offerSection.show();
 
             answerSection.show();
             alert("Copy offer and paste to master");
         }
         connection.onicecandidateerror = function (event) {
-            slaveLog(`Adding ICE candidate failed with ${event.errorCode}: ${event.errorText}`);
+            slaveLog(`Adding ICE candidate '${event.url}' failed with ${event.errorCode}: ${event.errorText}`);
         }
         connection.onconnectionstatechange = function (event) {
             let state = event.target.connectionState;
@@ -94,8 +104,19 @@ $(document).ready(function () {
     }
 
     function dataChannelInitialization() {
-        serviceChannel.onmessage = event => {
-            slaveLog(`[${channel.label}] message: ${event.data}`);
+        serviceChannel.onmessage = async event => {
+            let message = decode(event.data);
+
+            if (message.type === "execute") {
+                slaveLog(`[${channel.label}] message with execution data has been received`);
+                file = Uint8Array.from(atob(message.file), c => c.charCodeAt(0));
+                inputData = message.input;
+                slaveLog(`[${channel.label}] issued input data: ${inputData}`);
+                await execute("sum");
+                slaveLog(`Got result: ${result}`);
+            } else {
+                slaveLog(`[${channel.label}] unexpected message: ${message}`);
+            }
         }
 
         let handleSendChannelStatusChange = () => {
@@ -105,6 +126,29 @@ $(document).ready(function () {
         }
         serviceChannel.onopen = handleSendChannelStatusChange;
         serviceChannel.onclose = handleSendChannelStatusChange;
+    }
+
+    async function execute(func) {
+        // One page is 64KiB, 1-7 pages are allocated
+        const memory = new WebAssembly.Memory({initial: 1, maximum: 7});
+
+        // Each element in Int32Array takes 4B, so 16'000 elements could be set to 1 page
+        // Let's take 7 pages max (with extra margin), around 450 KiB and be able to process 100k i32 numbers max
+        if (inputData.length > 100000) {
+            slaveLog("Too much data, no more than 100k could be proceed")
+            return;
+        }
+        try {
+            await WebAssembly.instantiate(file, {env: {"memory": memory}}).then(file => {
+                const array = new Int32Array(file.instance.exports.memory.buffer, 0, inputData.length);
+                array.set(inputData);
+                result = file.instance.exports[func](inputData, inputData.length);
+            });
+        } catch (e) {
+            slaveLog("Execution failed, stack trace:");
+            slaveLog(e.toString())
+        }
+
     }
 });
 

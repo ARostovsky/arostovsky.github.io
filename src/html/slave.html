@@ -16,8 +16,8 @@
 </div>
 <div id="connecting-section">
     <label for="slave-name">Name</label>
-    <input type="text" id="slave-name">
-    <button id="create-offer" disabled>Connect</button>
+    <input type="text" id="slave-name" value="Undefined">
+    <button id="create-offer">Connect</button>
 </div>
 
 <div id="offer-section" style="display: none;">
@@ -26,6 +26,8 @@
     <label>
         <textarea id="offer" rows="8" cols="160" name="text" readonly="readonly" disabled></textarea>
     </label>
+    <br>
+    <button id="copy-offer" disabled>Copy offer</button>
 </div>
 
 <div id="answer-section" style="display: none;">
