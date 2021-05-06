@@ -1,5 +1,6 @@
 'use strict';
 
+let name;
 let connection;
 let serviceChannel;
 let file;
@@ -43,7 +44,7 @@ $(document).ready(function () {
         serviceChannel = connection.createDataChannel('service');
         dataChannelInitialization();
 
-        window.channel = serviceChannel;
+        // window.channel = serviceChannel;
     });
 
     addAnswer.click(async function () {
@@ -70,7 +71,7 @@ $(document).ready(function () {
             slaveLog('Found all ICE candidates');
             offer = await connection.createOffer();
 
-            let name = slaveName.val();
+            name = slaveName.val();
             slaveNameLabel.text(name);
 
             let offerJSON = offer.toJSON();
@@ -104,28 +105,35 @@ $(document).ready(function () {
     }
 
     function dataChannelInitialization() {
-        serviceChannel.onmessage = async event => {
-            let message = decode(event.data);
-
-            if (message.type === "execute") {
-                slaveLog(`[${channel.label}] message with execution data has been received`);
-                file = Uint8Array.from(atob(message.file), c => c.charCodeAt(0));
-                inputData = message.input;
-                slaveLog(`[${channel.label}] issued input data: ${inputData}`);
-                await execute("sum");
-                slaveLog(`Got result: ${result}`);
-            } else {
-                slaveLog(`[${channel.label}] unexpected message: ${message}`);
-            }
-        }
+        serviceChannel.onmessage = async event => await processMessage(event)
 
         let handleSendChannelStatusChange = () => {
             if (serviceChannel) {
-                slaveLog(`[${channel.label}] status: ${channel.readyState}`);
+                slaveLog(`[${serviceChannel.label}] status: ${serviceChannel.readyState}`);
             }
         }
         serviceChannel.onopen = handleSendChannelStatusChange;
         serviceChannel.onclose = handleSendChannelStatusChange;
+    }
+
+    async function processMessage(event) {
+        let message = decode(event.data);
+
+        if (message.type === "execute") {
+            slaveLog(`[${serviceChannel.label}] message with execution data has been received`);
+            file = Uint8Array.from(atob(message.file), c => c.charCodeAt(0));
+            inputData = message.input;
+            slaveLog(`[${serviceChannel.label}] issued input data: ${inputData}`);
+            await execute("sum");
+            slaveLog(`Got result '${result}' and sending it back to master`);
+            serviceChannel.send(encode({
+                type: "result",
+                name: slaveName,
+                value: result
+            }));
+        } else {
+            slaveLog(`[${serviceChannel.label}] unexpected message: ${message}`);
+        }
     }
 
     async function execute(func) {

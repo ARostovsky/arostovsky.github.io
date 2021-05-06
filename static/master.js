@@ -1,4 +1,5 @@
 let connections = [];
+let result = [];
 
 $(document).ready(function () {
     let slavesListSection = $("div#list-slaves-section"),
@@ -54,11 +55,12 @@ $(document).ready(function () {
         let input = $("#wasm-data").val().split(" ").map(numStr => {
             let value = parseInt(numStr);
             if (isNaN(value)) {
-                masterLog(`Check input data, ${numStr} is not a number`);
+                masterLog(`Check input data, '${numStr}' is not a number`);
             } else {
                 return value;
             }
         });
+        result = [];
 
         let reader = new FileReader();
         reader.onload = function () {
@@ -75,9 +77,6 @@ $(document).ready(function () {
         await fetch(`/uploads/${fileName}`)
             .then(response => response.blob())
             .then(blob => reader.readAsBinaryString(blob));
-        // .then(results => {
-        //     alert(results.instance.exports.fun());
-        // });
     });
 
     async function initializeConnection(offer) {
@@ -144,9 +143,7 @@ $(document).ready(function () {
     }
 
     function initializeDataChannel(channel, name) {
-        channel.onmessage = event => {
-            masterLog(`[${channel.label}] message: ${event.data}`, name);
-        }
+        channel.onmessage = event => processMessage(channel, event, name);
 
         function handleReceiveChannelStatusChange() {
             if (channel) {
@@ -156,6 +153,19 @@ $(document).ready(function () {
 
         channel.onopen = () => handleReceiveChannelStatusChange();
         channel.onclose = () => handleReceiveChannelStatusChange();
+    }
+
+    function processMessage(channel, event, name) {
+        let message = decode(event.data);
+        masterLog(`[${channel.label}] message: ${JSON.stringify(message)}`, name);
+        if (message.type === "result") {
+            result.push(Number.parseInt(message.value));
+        }
+        if (result.length === connections.length) {
+            masterLog("All slaves returned their result");
+            masterLog(`Final result: ${result.reduce((a, b) => a + b, 0)}`)
+            result = [];
+        }
     }
 });
 
