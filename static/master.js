@@ -69,16 +69,21 @@ $(document).ready(function () {
                     functionsList.forEach(func => {
                         selectedFunction.append(`<option>${func}</option>`)
                     });
+                    $("#function-div").show();
                     $("#wasm-file").hide();
-                    inputData.prop("disabled", false);
-                    startButton.prop("disabled", false);
                 });
             } catch (e) {
                 masterLog("Execution failed, stack trace:");
                 masterLog(e.toString())
             }
         });
-    })
+    });
+
+    $("button#choose-another-wasm-file").click(function () {
+        selectedFunction.find('option').remove();
+        $("#wasm-file").show();
+        $("#function-div").hide();
+    });
 
     startButton.click(async function () {
         // let fileName = $("#wasm-file").val();
