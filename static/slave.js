@@ -123,10 +123,12 @@ $(document).ready(function () {
         if (message.type === "execute") {
             slaveLog(`[${serviceChannel.label}] message with execution data has been received`);
             file = Uint8Array.from(atob(message.file), c => c.charCodeAt(0));
-            slaveLog(`[${serviceChannel.label}] issued input data: ${message.inputData}`);
+            let f = getBufferFromFile(atob(message.file));
+            slaveLog(`[${serviceChannel.label}] function: ${message.function}`);
+            slaveLog(`[${serviceChannel.label}] input data: ${message.inputData}`);
             inputData = getNumbers(message.inputData);
             if (inputData.length !== 0) {
-                await execute("sum");
+                await execute(message.function);
                 slaveLog(`Got result '${result}' and sending it back to master`);
             } else {
                 // to be 100% sure

@@ -1,5 +1,7 @@
 let connections = [];
 let result = [];
+let webAssembly;
+let selectedFunc;
 
 $(document).ready(function () {
     let slavesListSection = $("div#list-slaves-section"),
@@ -12,6 +14,9 @@ $(document).ready(function () {
         copyAnswer = $("button#copy-answer"),
         createAnswer = $("button#create-answer"),
         closeAdding = $("button#close-adding"),
+        fileFunctions = $("button#wasm-file-functions"),
+        selectedFunction = $("select#wasm-function"),
+        inputData = $("textarea#wasm-data"),
         startButton = $("button#start-button");
 
     addSlave.click(function () {
@@ -50,10 +55,34 @@ $(document).ready(function () {
         addSlave.show();
     });
 
+    fileFunctions.click(async function () {
+        let functionsList;
+
+        let fileName = document.getElementById('wasm-file-input').files[0];
+        getBinary(fileName, async file => {
+            try {
+                await WebAssembly.instantiate(file).then(file => {
+                    webAssembly = file;
+                    functionsList = getMethods(file.instance.exports);
+                    functionsList.forEach(func => {
+                        selectedFunction.append(`<option>${func}</option>`)
+                    });
+                    $("#wasm-file").hide();
+                    inputData.prop("disabled", false);
+                    startButton.prop("disabled", false);
+                });
+            } catch (e) {
+                masterLog("Execution failed, stack trace:");
+                masterLog(e.toString())
+            }
+        });
+    })
+
     startButton.click(async function () {
         // let fileName = $("#wasm-file").val();
         let fileName = document.getElementById('wasm-file-input').files[0];
-        let input = $("#wasm-data").val().split(" ").map(numStr => {
+        selectedFunc = selectedFunction.val();
+        let input = inputData.val().split(" ").map(numStr => {
             let value = parseInt(numStr);
             if (isNaN(value)) {
                 masterLog(`Check input data, '${numStr}' is not a number`);
@@ -76,15 +105,13 @@ $(document).ready(function () {
                 let message = {
                     type: "execute",
                     file: encodedFile,
+                    function: selectedFunc,
                     inputData: connection.inputData
                 };
                 connection.serviceChannel.send(encode(message));
             });
         };
 
-        // await fetch(`/uploads/${fileName}`)
-        //     .then(response => response.blob())
-        //     .then(blob => reader.readAsBinaryString(blob));
         reader.readAsBinaryString(fileName);
     });
 
@@ -172,9 +199,13 @@ $(document).ready(function () {
             result.push(message.value);
         }
         if (result.length === connections.length) {
-            if (getNumbers(result).length !== 0) {
+            if (result.length !== 0) {
                 masterLog(`All slaves returned their result: ${result}`);
-                masterLog(`Final result: ${getSum(getNumbers(result))}`)
+                result = getNumbers(result);
+                const array = new Int32Array(webAssembly.instance.exports.memory.buffer);
+                array.set(result);
+                let finalResult = webAssembly.instance.exports[selectedFunc](array, result.length);
+                masterLog(`Final result: ${finalResult}`)
             } else {
                 masterLog(`Final result is empty`)
             }

@@ -42,11 +42,21 @@
 
 <h3>Execute section</h3>
 <div id="wasm">
-    <label for="wasm-file-input">Select .wasm file</label><br/>
-<!--    <select id="wasm-file"></select><br/>-->
-    <input id="wasm-file-input" type="file"><br/><br/>
-    <label for="wasm-data">Data</label><br><textarea id="wasm-data"></textarea><br/>
-    <button id="start-button">Start</button>
+    <div id="wasm-file">
+        <label for="wasm-file-input">Select .wasm file</label><br/>
+        <!--    <select id="wasm-file"></select><br/>-->
+        <input id="wasm-file-input" type="file"><br/><br/>
+        <button id="wasm-file-functions">Get available functions</button>
+    </div>
+    <br/>
+    <div>
+        <label for="wasm-function">Function</label>
+        <select id="wasm-function"></select>
+    </div>
+    <br/>
+    <label for="wasm-data">Data</label><br>
+    <textarea id="wasm-data" disabled></textarea><br/>
+    <button id="start-button" disabled>Start</button>
 </div>
 
 <!--<br><br><br><br>-->

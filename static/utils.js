@@ -34,6 +34,17 @@ function copyToClipboard(data) {
     $temp.remove();
 }
 
+function getBinary(fileName, callback) {
+    let reader = new FileReader();
+    reader.onload = function () {
+        let result = getBufferFromFile(this.result);
+        callback(result)
+    };
+    reader.readAsBinaryString(fileName);
+}
+
+getBufferFromFile = (file) => Uint8Array.from(file, c => c.charCodeAt(0));
+
 getNumbers = (array) => array.filter(it => !isNaN(it) && it !== null)
 
 getSum = (array) => array.reduce((a, b) => a + b, 0)

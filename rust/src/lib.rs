@@ -2,16 +2,6 @@
 // cargo build --release --target=wasm32-unknown-unknown
 
 #[no_mangle]
-pub fn fun() -> i32 {
-    return 1234;
-}
-
-#[no_mangle]
-pub fn ret(val: i32) -> i32 {
-    return val;
-}
-
-#[no_mangle]
 pub fn sum(array: [i32; 100000], size: i32) -> i32 {
     return array.iter().take(size as usize).sum();
 }
