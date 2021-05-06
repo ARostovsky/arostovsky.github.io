@@ -4,6 +4,8 @@ let webAssembly;
 let selectedFunc;
 
 $(document).ready(function () {
+    window.debug = false;
+
     let slavesListSection = $("div#list-slaves-section"),
         slavesList = $("ul#slaves-list"),
         addSlave = $("button#add-slave"),
@@ -80,7 +82,7 @@ $(document).ready(function () {
 
     startButton.click(async function () {
         // let fileName = $("#wasm-file").val();
-        let fileName = document.getElementById('wasm-file-input').files[0];
+        let fileName = $('#wasm-file-input').prop('files')[0];
         selectedFunc = selectedFunction.val();
         let input = inputData.val().split(" ").map(numStr => {
             let value = parseInt(numStr);
@@ -113,6 +115,7 @@ $(document).ready(function () {
         };
 
         reader.readAsBinaryString(fileName);
+        masterLog(`Starting executing '${selectedFunc}' function of '${fileName.name}' file with '${input}' data`);
     });
 
     async function initializeConnection(offer) {
@@ -141,11 +144,12 @@ $(document).ready(function () {
         };
         connection.onicecandidate = async function (event) {
             if (event.candidate != null) {
-                masterLog(`Found ICE candidate: ${event.candidate.candidate}`, name);
+                if (debug) {
+                    masterLog(`Found ICE candidate: ${event.candidate.candidate}`, name);
+                }
                 return;
             }
             masterLog(`Found all ICE candidates`, name);
-            masterLog(`State ${state}`, name);
             if (state !== "failed") {
                 answerField.val(encode(answer));
                 answerSection.show();
@@ -155,7 +159,9 @@ $(document).ready(function () {
             }
         };
         connection.onicecandidateerror = function (event) {
-            masterLog(`Adding ICE candidate failed with ${event.errorCode}: ${event.errorText}`, name);
+            if (debug) {
+                masterLog(`Adding ICE candidate failed with ${event.errorCode}: ${event.errorText}`, name);
+            }
         }
         connection.onconnectionstatechange = function (event) {
             state = event.target.connectionState;
@@ -183,7 +189,7 @@ $(document).ready(function () {
         channel.onmessage = event => processMessage(channel, event, name);
 
         function handleReceiveChannelStatusChange() {
-            if (channel) {
+            if (channel && debug) {
                 masterLog(`[${channel.label}] status: ${channel.readyState}`, name);
             }
         }
@@ -194,13 +200,15 @@ $(document).ready(function () {
 
     function processMessage(channel, event, name) {
         let message = decode(event.data);
-        masterLog(`[${channel.label}] message: ${JSON.stringify(message)}`, name);
+        if (debug) {
+            masterLog(`[${channel.label}] message: ${JSON.stringify(message)}`, name);
+        }
         if (message.type === "result") {
             result.push(message.value);
         }
         if (result.length === connections.length) {
             if (result.length !== 0) {
-                masterLog(`All slaves returned their result: ${result}`);
+                masterLog(`All slaves returned their results: ${result}`);
                 result = getNumbers(result);
                 const array = new Int32Array(webAssembly.instance.exports.memory.buffer);
                 array.set(result);
