@@ -137,6 +137,7 @@ $(document).ready(function () {
                 serviceChannel: serviceChannel,
                 inputData: []
             });
+            refreshConnectionsList();
         }
         connection.onnegotiationneeded = async function () {
             answer = await connection.createAnswer();
@@ -177,7 +178,10 @@ $(document).ready(function () {
                 answerSection.hide();
                 slavesListSection.show();
                 addSlave.show();
+            } else if (state === "disconnected") {
+                connections = connections.filter(connection => connection.name !== name)
             }
+            refreshConnectionsList();
         };
 
         answer = await connection.createAnswer();
@@ -223,6 +227,13 @@ $(document).ready(function () {
                 connection.inputData = [];
             })
         }
+    }
+
+    function refreshConnectionsList() {
+        slavesList.find('li').remove();
+        connections
+            .sort((a, b) => a.name.localeCompare(b.name))
+            .forEach(connection => {slavesList.append(`<li>${connection.name}</li>`)});
     }
 });
 
