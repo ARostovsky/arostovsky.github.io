@@ -42,21 +42,21 @@
 
 <h3>Execute section</h3>
 <div id="wasm">
-    <label for="wasm-file">Select uploaded .wasm file</label>
-    <select id="wasm-file"></select><br/>
-    <!--    <input id="wasm-file-input" type="file">-->
+    <label for="wasm-file-input">Select .wasm file</label><br/>
+<!--    <select id="wasm-file"></select><br/>-->
+    <input id="wasm-file-input" type="file"><br/><br/>
     <label for="wasm-data">Data</label><br><textarea id="wasm-data"></textarea><br/>
     <button id="start-button">Start</button>
 </div>
 
-<br><br><br><br>
-<h3>WASM upload section</h3>
-<!--suppress HtmlUnknownTarget -->
-<form method="POST" action="/upload-wasm-file" enctype="multipart/form-data">
-    <label>Select .wasm file:</label>
-    <input type="file" name="wasm_file"/>
-    <br>
-    <input type="submit" name="btn_upload_profile_pic" value="Upload"/>
-</form>
+<!--<br><br><br><br>-->
+<!--<h3>WASM upload section</h3>-->
+<!--&lt;!&ndash;suppress HtmlUnknownTarget &ndash;&gt;-->
+<!--<form method="POST" action="/upload-wasm-file" enctype="multipart/form-data">-->
+<!--    <label>Select .wasm file:</label>-->
+<!--    <input type="file" name="wasm_file"/>-->
+<!--    <br>-->
+<!--    <input type="submit" name="btn_upload_profile_pic" value="Upload"/>-->
+<!--</form>-->
 </body>
 </html>

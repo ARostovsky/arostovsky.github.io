@@ -51,7 +51,8 @@ $(document).ready(function () {
     });
 
     startButton.click(async function () {
-        let fileName = $("#wasm-file").val();
+        // let fileName = $("#wasm-file").val();
+        let fileName = document.getElementById('wasm-file-input').files[0];
         let input = $("#wasm-data").val().split(" ").map(numStr => {
             let value = parseInt(numStr);
             if (isNaN(value)) {
@@ -81,9 +82,10 @@ $(document).ready(function () {
             });
         };
 
-        await fetch(`/uploads/${fileName}`)
-            .then(response => response.blob())
-            .then(blob => reader.readAsBinaryString(blob));
+        // await fetch(`/uploads/${fileName}`)
+        //     .then(response => response.blob())
+        //     .then(blob => reader.readAsBinaryString(blob));
+        reader.readAsBinaryString(fileName);
     });
 
     async function initializeConnection(offer) {
