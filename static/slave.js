@@ -5,7 +5,7 @@ let connection;
 let serviceChannel;
 let file;
 let inputData;
-let result;
+let result = NaN;
 
 $(document).ready(function () {
     let definitionSection = $("div#definition-section"),
@@ -81,6 +81,7 @@ $(document).ready(function () {
             offerSection.show();
 
             answerSection.show();
+            document.title = name;
             alert("Copy offer and paste to master");
         }
         connection.onicecandidateerror = function (event) {
@@ -122,15 +123,21 @@ $(document).ready(function () {
         if (message.type === "execute") {
             slaveLog(`[${serviceChannel.label}] message with execution data has been received`);
             file = Uint8Array.from(atob(message.file), c => c.charCodeAt(0));
-            inputData = message.input;
-            slaveLog(`[${serviceChannel.label}] issued input data: ${inputData}`);
-            await execute("sum");
-            slaveLog(`Got result '${result}' and sending it back to master`);
+            slaveLog(`[${serviceChannel.label}] issued input data: ${message.inputData}`);
+            inputData = getNumbers(message.inputData);
+            if (inputData.length !== 0) {
+                await execute("sum");
+                slaveLog(`Got result '${result}' and sending it back to master`);
+            } else {
+                // to be 100% sure
+                result = NaN;
+            }
             serviceChannel.send(encode({
                 type: "result",
-                name: slaveName,
+                name: name,
                 value: result
             }));
+            result = NaN;
         } else {
             slaveLog(`[${serviceChannel.label}] unexpected message: ${message}`);
         }
@@ -138,7 +145,7 @@ $(document).ready(function () {
 
     async function execute(func) {
         // One page is 64KiB, 1-7 pages are allocated
-        const memory = new WebAssembly.Memory({initial: 1, maximum: 7});
+        // const memory = new WebAssembly.Memory({initial: 1, maximum: 7});
 
         // Each element in Int32Array takes 4B, so 16'000 elements could be set to 1 page
         // Let's take 7 pages max (with extra margin), around 450 KiB and be able to process 100k i32 numbers max
@@ -147,10 +154,11 @@ $(document).ready(function () {
             return;
         }
         try {
-            await WebAssembly.instantiate(file, {env: {"memory": memory}}).then(file => {
-                const array = new Int32Array(file.instance.exports.memory.buffer, 0, inputData.length);
+            await WebAssembly.instantiate(file, /*{env: {"memory": memory}}*/).then(file => {
+                const array = new Int32Array(file.instance.exports.memory.buffer);
+                // const array = new Int32Array(memory.buffer);
                 array.set(inputData);
-                result = file.instance.exports[func](inputData, inputData.length);
+                result = file.instance.exports[func](array, inputData.length);
             });
         } catch (e) {
             slaveLog("Execution failed, stack trace:");

@@ -62,14 +62,21 @@ $(document).ready(function () {
         });
         result = [];
 
+        const connectionLength = connections.length
+        input.forEach(function (value, index) {
+            let connectionIndex = index % connectionLength;
+            connections[connectionIndex].inputData.push(value);
+        })
+
         let reader = new FileReader();
         reader.onload = function () {
-            let message = {
-                type: "execute",
-                file: btoa(this.result),
-                input: input
-            };
+            let encodedFile = btoa(this.result);
             connections.forEach(function (connection) {
+                let message = {
+                    type: "execute",
+                    file: encodedFile,
+                    inputData: connection.inputData
+                };
                 connection.serviceChannel.send(encode(message));
             });
         };
@@ -93,9 +100,10 @@ $(document).ready(function () {
             masterLog(`Data channel "${event.channel.label}" is initialized`, name);
             initializeDataChannel(serviceChannel, name);
             connections.push({
-                "name": name,
-                "connection": connection,
-                "serviceChannel": serviceChannel
+                name: name,
+                connection: connection,
+                serviceChannel: serviceChannel,
+                inputData: []
             });
         }
         connection.onnegotiationneeded = async function () {
@@ -159,12 +167,20 @@ $(document).ready(function () {
         let message = decode(event.data);
         masterLog(`[${channel.label}] message: ${JSON.stringify(message)}`, name);
         if (message.type === "result") {
-            result.push(Number.parseInt(message.value));
+            result.push(message.value);
         }
         if (result.length === connections.length) {
-            masterLog("All slaves returned their result");
-            masterLog(`Final result: ${result.reduce((a, b) => a + b, 0)}`)
+            if (getNumbers(result).length !== 0) {
+                masterLog(`All slaves returned their result: ${result}`);
+                masterLog(`Final result: ${getSum(getNumbers(result))}`)
+            } else {
+                masterLog(`Final result is empty`)
+            }
+
             result = [];
+            connections.forEach(function (connection) {
+                connection.inputData = [];
+            })
         }
     }
 });

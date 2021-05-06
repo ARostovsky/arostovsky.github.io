@@ -33,3 +33,9 @@ function copyToClipboard(data) {
     document.execCommand("copy");
     $temp.remove();
 }
+
+getNumbers = (array) => array.filter(it => !isNaN(it) && it !== null)
+
+getSum = (array) => array.reduce((a, b) => a + b, 0)
+
+getMethods = (obj) =>  Object.getOwnPropertyNames(obj).filter(item => typeof obj[item] === 'function')
