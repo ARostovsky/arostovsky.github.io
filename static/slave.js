@@ -8,6 +8,8 @@ let inputData;
 let result = NaN;
 
 $(document).ready(function () {
+    window.debug = false;
+
     let definitionSection = $("div#definition-section"),
         slaveNameLabel = $("label#name"),
         copyOffer = $("button#copy-offer"),
@@ -85,7 +87,9 @@ $(document).ready(function () {
             alert("Copy offer and paste to master");
         }
         connection.onicecandidateerror = function (event) {
-            slaveLog(`Adding ICE candidate '${event.url}' failed with ${event.errorCode}: ${event.errorText}`);
+            if (debug) {
+                slaveLog(`Adding ICE candidate '${event.url}' failed with ${event.errorCode}: ${event.errorText}`);
+            }
         }
         connection.onconnectionstatechange = function (event) {
             let state = event.target.connectionState;
