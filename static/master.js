@@ -87,6 +87,12 @@ $(document).ready(function () {
 
     startButton.click(async function () {
         // let fileName = $("#wasm-file").val();
+        const connectionLength = connections.length;
+        if (connectionLength === 0) {
+            masterLog("No slaves connected, can't execute function");
+            return;
+        }
+
         let fileName = $('#wasm-file-input').prop('files')[0];
         selectedFunc = selectedFunction.val();
         let input = inputData.val().split(" ").map(numStr => {
@@ -97,9 +103,8 @@ $(document).ready(function () {
                 return value;
             }
         });
-        result = [];
 
-        const connectionLength = connections.length
+        result = [];
         input.forEach(function (value, index) {
             let connectionIndex = index % connectionLength;
             connections[connectionIndex].inputData.push(value);
@@ -120,7 +125,7 @@ $(document).ready(function () {
         };
 
         reader.readAsBinaryString(fileName);
-        masterLog(`Starting executing '${selectedFunc}' function of '${fileName.name}' file with '${input}' data`);
+        masterLog(`Starting '${selectedFunc}' function execution of '${fileName.name}' file with '${input}' data`);
     });
 
     async function initializeConnection(offer) {
