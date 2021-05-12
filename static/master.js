@@ -95,7 +95,7 @@ $(document).ready(function () {
 
         let fileName = $('#wasm-file-input').prop('files')[0];
         selectedFunc = selectedFunction.val();
-        let input = inputData.val().split(" ").map(numStr => {
+        let input = inputData.val().trim().split(/\s+/).map(numStr => {
             let value = parseInt(numStr);
             if (isNaN(value)) {
                 masterLog(`Check input data, '${numStr}' is not a number`);
