@@ -28,6 +28,6 @@
 6. Нажать `Start` и получить ответ в логе `Final result: 28` :)
 
 Скриншоты:
-![master](./readme_files/master.png)
-![slave1](./readme_files/slave1.png)
-![slave2](./readme_files/slave2.png)
+![master](https://raw.githubusercontent.com/ARostovsky/arostovsky.github.io/master/readme_files/Master.PNG)
+![slave1](https://raw.githubusercontent.com/ARostovsky/arostovsky.github.io/master/readme_files/Slave1.PNG)
+![slave2](https://raw.githubusercontent.com/ARostovsky/arostovsky.github.io/master/readme_files/Slave2.PNG)
